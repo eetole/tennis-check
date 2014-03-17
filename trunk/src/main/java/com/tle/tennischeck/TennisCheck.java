@@ -54,7 +54,7 @@ public class TennisCheck {
             public void run() {
                 Date today = new Date();
                 today.setSeconds(0);
-                for(int i = 0; i<6; i++){
+                for(int i = 0; i<2; i++){
                     int add = 24*60*60*1000*i;
                     Date d = new Date(today.getTime()+add);
                     if(firstRun){
@@ -65,22 +65,21 @@ public class TennisCheck {
                         List<Date> toAdd = new ArrayList<>();
                         for (Date newDate : newFreeTimes) {
                             Iterator<Date> it = freeTimes.iterator();
+                            boolean found = false;
                             while(it.hasNext()){
                                 Date oldDate = it.next();
-                                if(newDate.compareTo(oldDate) > 0){
-                                    sendMail(newDate.toString());
-                                    toAdd.add(newDate);
-                                }
-                                else if(newDate.compareTo(oldDate) == 0){
-                                    System.out.println("Already exist: "+newDate);
-                                }
-                                else{
-                                    System.out.println("Earlier: "+newDate);
+                                if(newDate.compareTo(oldDate) == 0){
+                                    System.out.println("Already exists: "+newDate);
+                                    found = true;
+                                    break;
                                 }
                             }
-                            
+                            if(!found){
+                                System.out.println("Sending mail for "+newDate);
+                                freeTimes.add(newDate);
+                            }
                         }
-                        freeTimes.addAll(toAdd);
+                        
                     }
 
                     try {
