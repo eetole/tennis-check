@@ -48,12 +48,13 @@ public class TennisCheck {
     public TennisCheck() {
         
         
-        TimerTask task = new TimerTask() {
-
+        TimerTask task;
+        task = new TimerTask() {
+            
             @Override
             public void run() {
                 Date today = new Date();
-                today.setSeconds(0);
+                today.setSeconds(59);
                 for(int i = 0; i<2; i++){
                     int add = 24*60*60*1000*i;
                     Date d = new Date(today.getTime()+add);
@@ -68,13 +69,15 @@ public class TennisCheck {
                             boolean found = false;
                             while(it.hasNext()){
                                 Date oldDate = it.next();
+                                System.out.println("new:"+newDate);
+                                System.out.println("old:"+oldDate);
                                 if(newDate.compareTo(oldDate) == 0){
                                     System.out.println("Already exists: "+newDate);
                                     found = true;
                                     break;
                                 }
                             }
-                            if(!found){
+                            if(!found && newDate.after(today)){
                                 System.out.println("Sending mail for "+newDate);
                                 freeTimes.add(newDate);
                             }
@@ -103,6 +106,18 @@ public class TennisCheck {
                 System.out.println("freeTime:\n"+freeTimes.size()+freeTimes);
             }
             
+            private int findCourtNumber(String str){
+                String tmp = str.substring(1, 3).trim();
+                //System.out.println("tmp:"+tmp);
+                int rv = 0;
+                try{
+                    rv = Integer.parseInt(tmp);
+                }catch(NumberFormatException nfe){
+                    rv = Integer.parseInt(tmp.substring(0,1));
+                }
+                return rv;
+            }
+            
             private List<Date> getFreeSlots(Date date){
                 System.out.println("Fetching "+date);
                 String dayToCheck = (date.getYear()+1900)+"-"+addLeadingZero(date.getMonth()+1)+"-"+addLeadingZero(date.getDate());
@@ -110,18 +125,21 @@ public class TennisCheck {
                 try {
                     Document doc = Jsoup.connect("http://www.slsystems.fi/tampereentenniskeskus/ftpages/ft-varaus-table-01.php?laji=1&pvm="+dayToCheck).get();
 
-                    //System.out.println("f11:" + doc.getElementsByClass("f11"));
+                    //System.out.println(doc.html());
                     Elements els = doc.getElementsByClass("f11");
                     for (Element element : els) {
                         String html = element.html();
-                        //System.out.println("text:" + element.text());
+                        
                         if (element.text().equals("Varaa")) {
+                            //System.out.println("Court:" + findCourtNumber(element.parent().html()));
+                            int court = findCourtNumber(element.parent().html());
                             String time = html.substring(html.indexOf("klo") + 4, html.indexOf("klo") + 9);
                             //System.out.println("time:" + time);
                             String[] parts = time.split(":");
                             Date timeInDate = new Date(date.getTime());
                             timeInDate.setHours(Integer.parseInt(parts[0]));
                             timeInDate.setMinutes(Integer.parseInt(parts[1]));
+                            timeInDate.setSeconds(court);
                             times.add(timeInDate);
                         }
                     }
@@ -151,20 +169,8 @@ public class TennisCheck {
         };
         
         
-        
-        
         Timer timer = new Timer("TennisChecker");
-        timer.schedule(task, 0, 5*60*1000);
-        
-/*        while(true){
-            try {
-                System.out.println(new Date(task.scheduledExecutionTime()));
-                Thread.sleep(10000);
-            } catch (InterruptedException ex) {
-                Logger.getLogger(TennisCheck.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-  */      
+        timer.schedule(task, 0, 2*60*1000);
 
     }
     
