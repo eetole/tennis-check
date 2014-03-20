@@ -5,15 +5,6 @@
  */
 package com.tle.tennischeck;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.Authenticator;
-import java.net.MalformedURLException;
-import java.net.PasswordAuthentication;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -33,12 +24,9 @@ import org.jsoup.select.Elements;
  */
 public class TennisCheck {
 
-    URL url;
-    InputStream is;
-    BufferedReader br;
-    String line;
-    boolean firstRun = true;
-
+    private boolean firstRun = true;
+    private int currentDate = 0;
+    
     List<Date> freeTimes = new ArrayList<Date>();
     
     public static void main(String args[]) {
@@ -47,7 +35,6 @@ public class TennisCheck {
 
     public TennisCheck() {
         
-        
         TimerTask task;
         task = new TimerTask() {
             
@@ -55,34 +42,37 @@ public class TennisCheck {
             public void run() {
                 Date today = new Date();
                 today.setSeconds(59);
-                for(int i = 0; i<2; i++){
+                for(int i = 0; i<3; i++){
                     int add = 24*60*60*1000*i;
                     Date d = new Date(today.getTime()+add);
-                    if(firstRun){
+                    if(firstRun || currentDate != today.getDate()){
+                        freeTimes.clear();
                         freeTimes.addAll(getFreeSlots(d));
+                        currentDate = today.getDate();
                     }
                     else{
                         List<Date> newFreeTimes = getFreeSlots(d);
-                        List<Date> toAdd = new ArrayList<>();
                         for (Date newDate : newFreeTimes) {
-                            Iterator<Date> it = freeTimes.iterator();
                             boolean found = false;
+                            Iterator<Date> it = freeTimes.iterator();
                             while(it.hasNext()){
                                 Date oldDate = it.next();
-                                System.out.println("new:"+newDate);
-                                System.out.println("old:"+oldDate);
-                                if(newDate.compareTo(oldDate) == 0){
-                                    System.out.println("Already exists: "+newDate);
+                                    
+                                if(newDate.getYear() == oldDate.getYear() && newDate.getMonth() == oldDate.getMonth() && newDate.getDate() == oldDate.getDate() &&
+                                        newDate.getHours() == oldDate.getHours() && newDate.getMinutes() == oldDate.getMinutes() && newDate.getSeconds() == oldDate.getSeconds()){
+                                    //System.out.println("Already exists: "+newDate);
                                     found = true;
                                     break;
                                 }
                             }
                             if(!found && newDate.after(today)){
-                                System.out.println("Sending mail for "+newDate);
+                                //ma-pe 17-19
+                                if(newDate.getHours() >= 17 && newDate.getHours() <= 19 && newDate.getDay() >= 1 && newDate.getDay() <= 5){
+                                    sendMail(newDate);
+                                }
                                 freeTimes.add(newDate);
                             }
                         }
-                        
                     }
 
                     try {
@@ -100,10 +90,10 @@ public class TennisCheck {
                     Date date = it.next();
                     if(date.before(today)){
                         it.remove();
-                        System.out.println("Remove:"+date);
+                        //System.out.println("Remove:"+date);
                     }
                 }
-                System.out.println("freeTime:\n"+freeTimes.size()+freeTimes);
+                //System.out.println("freeTime:\n"+freeTimes.size()+freeTimes);
             }
             
             private int findCourtNumber(String str){
@@ -119,7 +109,7 @@ public class TennisCheck {
             }
             
             private List<Date> getFreeSlots(Date date){
-                System.out.println("Fetching "+date);
+                //System.out.println("Fetching "+date);
                 String dayToCheck = (date.getYear()+1900)+"-"+addLeadingZero(date.getMonth()+1)+"-"+addLeadingZero(date.getDate());
                 List<Date> times = new ArrayList<>();
                 try {
@@ -145,14 +135,6 @@ public class TennisCheck {
                     }
                 } catch (Exception ioe) {
                     ioe.printStackTrace();
-                } finally {
-                    try {
-                        if (is != null) {
-                            is.close();
-                        }
-                    } catch (IOException ioe) {
-                        // nothing to see here
-                    }
                 }
                 
                 return times;
@@ -168,16 +150,12 @@ public class TennisCheck {
             }
         };
         
-        
         Timer timer = new Timer("TennisChecker");
-        timer.schedule(task, 0, 2*60*1000);
-
+        timer.schedule(task, 0, 5*60*1000);
     }
     
-    private void sendMail(String time){
-        System.out.println("Sending mail for"+time);
+    private void sendMail(Date date){
+        System.out.println("Sending mail for"+date);
     }
-
-    
     
 }
